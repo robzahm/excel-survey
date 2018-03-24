@@ -3,37 +3,64 @@ import os
 import shutil
 import pandas as pd
 
+# Function to add an amount to an existing or null value
+def addValue(originalVal, amountToAdd):
+    if not isinstance(originalVal, int):
+        return amountToAdd
+    else:
+        return originalVal + amountToAdd
+
+
+# Constants
+NUM_DAILY_ENTRIES_ROW = 21
+NUM_DAYS = 20
+NUM_ISSUES = 19
+REPORTING_SHEET_NAME = "Daily Issue Survey"
+ROOT_DIRECTORY = "/Users/zahm/surveys/"
+
 print("Python Version: " + sys.version)
+print ("Looking for surveys in: " + ROOT_DIRECTORY)
 
-# Find directory with files
-# Assumes the root directory contains the master template, and a subdirectory named "data"
-# that contains the individual Excel files
-rootDir = "/Users/zahm/surveys/"
-surveyResultsMasterPath = rootDir + "survey_results_master.xlsx"
-surveyResultsPath = rootDir + "survey_results.xlsx"
-
-# Copy the survey results master into a new survey results file
+# Copy the survey results master into a new survey results file,
+# and load it into a dataframe
+surveyResultsMasterPath = ROOT_DIRECTORY + "survey_results_master.xlsx"
+surveyResultsPath = ROOT_DIRECTORY + "survey_results.xlsx"
 shutil.copyfile(surveyResultsMasterPath, surveyResultsPath)
-
-print ("Root Directory: " + rootDir)
-
-dataDir = rootDir + "data/"
-dataFiles = os.listdir(dataDir)
-
 surveyResults = pd.ExcelFile(surveyResultsPath)
-resultDF = surveyResults.parse("Daily Issue Survey")
+resultDF = surveyResults.parse(REPORTING_SHEET_NAME)
 
-# Load up a data file
-dataFilePath = dataDir + "Copy of Survey - mistakes.xlsx"
-dataFile = pd.ExcelFile(dataFilePath)
-df = dataFile.parse("Daily Issue Survey")
 
-print(df.iloc[5,0])
+# Iterate over the data files
+dataDir = ROOT_DIRECTORY + "data/"
+dataFiles = os.listdir(dataDir)
+for filename in dataFiles:
+    print ("Processing Survey: " + filename)
+    # Load the Excel file and survey entry sheet into a dataframe
+    dataFile = pd.ExcelFile(dataDir + filename)
+    df = dataFile.parse(REPORTING_SHEET_NAME)
 
-resultDF.iloc[5,0] = 2
+    # Iterate over each column
+    for colIndex in range(0,NUM_DAYS):
+        valueCheckedThatDay = False
 
-print(resultDF.iloc[5,0])
+        # Iterate over each row except for row 0 which will have the date
+        for rowIndex in range(1,NUM_ISSUES + 1):
 
+            # Get the value of the dataframe for that cell
+            dataVal = df.iloc[rowIndex, colIndex]
+
+            # If the value is a number, we want to add it to our results
+            if isinstance(dataVal, int):
+                # Indicate that values were tracked this day, and update our results dataframe
+                valueCheckedThatDay = True
+                resultDF.iloc[rowIndex, colIndex] = addValue(resultDF.iloc[rowIndex, colIndex], dataVal)
+        
+        # If values were checked that day, increment the value in the result dataframe
+        if valueCheckedThatDay:
+            resultDF.iloc[NUM_DAILY_ENTRIES_ROW, colIndex] = addValue(resultDF.iloc[NUM_DAILY_ENTRIES_ROW, colIndex], 1)
+
+
+# Write the output back to Excel
 writer = pd.ExcelWriter(surveyResultsPath, engine='xlsxwriter')
-resultDF.to_excel(writer, "Daily Issue Survey")
+resultDF.to_excel(writer, REPORTING_SHEET_NAME)
 writer.save()
