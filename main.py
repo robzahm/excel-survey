@@ -16,16 +16,17 @@ def list_non_hidden_files(path):
         if not file.startswith("~"):
             yield file
 
-
 # Constants
 NUM_DAILY_ENTRIES_ROW = 21
 NUM_DAYS = 20
 NUM_ISSUES = 19
 REPORTING_SHEET_NAME = "Daily Issue Survey"
+INSTRUCTIONS_SHEET_NAME = "Instructions"
 ROOT_DIRECTORY = "/Users/zahm/surveys/"
 
 print("Python Version: " + sys.version)
 print ("Looking for surveys in: " + ROOT_DIRECTORY)
+print()
 
 # Copy the survey results master into a new survey results file,
 # and load it into a dataframe
@@ -43,7 +44,15 @@ for filename in dataFiles:
     print ("Processing Survey: " + filename)
     # Load the Excel file and survey entry sheet into a dataframe
     dataFile = pd.ExcelFile(dataDir + filename)
-    df = dataFile.parse(sheet_name=REPORTING_SHEET_NAME,)
+    df = dataFile.parse(sheet_name=REPORTING_SHEET_NAME)
+
+    instructionsDF = dataFile.parse(sheet_name=INSTRUCTIONS_SHEET_NAME)
+    hearingOffice = str(instructionsDF.iloc[0,3])
+    region = str(instructionsDF.iloc[1,3])
+    NHCLocation = str(instructionsDF.iloc[5,3])
+
+    print ("Hearing Office: " + hearingOffice + ", Region: " + region + ", NHC Location: " + NHCLocation)
+    print()
 
     # Iterate over each column
     for colIndex in range(0,NUM_DAYS):
@@ -65,8 +74,7 @@ for filename in dataFiles:
         if valueCheckedThatDay:
             resultDF.iloc[NUM_DAILY_ENTRIES_ROW, colIndex] = add_value(resultDF.iloc[NUM_DAILY_ENTRIES_ROW, colIndex], 1)
 
-
 # Write the output back to Excel
 writer = pd.ExcelWriter(surveyResultsPath, engine='xlsxwriter')
-resultDF.to_excel(writer, REPORTING_SHEET_NAME)
+resultDF.to_excel(excel_writer=writer, sheet_name=REPORTING_SHEET_NAME)
 writer.save()
