@@ -4,11 +4,17 @@ import shutil
 import pandas as pd
 
 # Function to add an amount to an existing or null value
-def addValue(originalVal, amountToAdd):
+def add_value(originalVal, amountToAdd):
     if not isinstance(originalVal, int):
         return amountToAdd
     else:
         return originalVal + amountToAdd
+
+# Function to exclude any opened Excel files
+def list_non_hidden_files(path):
+    for file in os.listdir(path):
+        if not file.startswith("~"):
+            yield file
 
 
 # Constants
@@ -32,12 +38,12 @@ resultDF = surveyResults.parse(REPORTING_SHEET_NAME)
 
 # Iterate over the data files
 dataDir = ROOT_DIRECTORY + "data/"
-dataFiles = os.listdir(dataDir)
+dataFiles = list_non_hidden_files(dataDir)
 for filename in dataFiles:
     print ("Processing Survey: " + filename)
     # Load the Excel file and survey entry sheet into a dataframe
     dataFile = pd.ExcelFile(dataDir + filename)
-    df = dataFile.parse(REPORTING_SHEET_NAME)
+    df = dataFile.parse(sheet_name=REPORTING_SHEET_NAME,)
 
     # Iterate over each column
     for colIndex in range(0,NUM_DAYS):
@@ -53,11 +59,11 @@ for filename in dataFiles:
             if isinstance(dataVal, int):
                 # Indicate that values were tracked this day, and update our results dataframe
                 valueCheckedThatDay = True
-                resultDF.iloc[rowIndex, colIndex] = addValue(resultDF.iloc[rowIndex, colIndex], dataVal)
+                resultDF.iloc[rowIndex, colIndex] = add_value(resultDF.iloc[rowIndex, colIndex], dataVal)
         
         # If values were checked that day, increment the value in the result dataframe
         if valueCheckedThatDay:
-            resultDF.iloc[NUM_DAILY_ENTRIES_ROW, colIndex] = addValue(resultDF.iloc[NUM_DAILY_ENTRIES_ROW, colIndex], 1)
+            resultDF.iloc[NUM_DAILY_ENTRIES_ROW, colIndex] = add_value(resultDF.iloc[NUM_DAILY_ENTRIES_ROW, colIndex], 1)
 
 
 # Write the output back to Excel
