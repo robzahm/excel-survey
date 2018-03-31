@@ -13,7 +13,7 @@ def add_value(originalVal, amountToAdd):
 # Function to exclude any opened Excel files
 def list_non_hidden_files(path):
     for file in os.listdir(path):
-        if not file.startswith("~"):
+        if not file.startswith("~") and file.endswith(".xlsx"):
             yield file
 
 # Constants
